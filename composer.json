@@ -1,0 +1,20 @@
+{
+  "name": "gofintech/fluent-pdo",
+  "description": "Thin decorator over PDO objects to make them easier to use",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Antanas Kompanas",
+      "email": "a.kompanas@gofintech.lt"
+    }
+  ],
+  "require": {
+    "php": ">=7.2",
+    "ext-pdo": "*"
+  },
+  "autoload": {
+    "psr-4": {
+      "GoFinTech\\FluentPdo\\": "src/"
+    }
+  }
+}
