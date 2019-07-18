@@ -13,6 +13,7 @@ namespace GoFinTech\FluentPdo;
 
 
 use InvalidArgumentException;
+use PDOException;
 use PDOStatement;
 
 class FDOQuery
@@ -48,5 +49,20 @@ class FDOQuery
     public function map(string $className): FDOMappedQuery
     {
         return new FDOMappedQuery($this->statement, $this->params, $className);
+    }
+
+    public function execute(): void
+    {
+        if ($this->params) {
+            foreach ($this->params as $key => $value) {
+                if (is_int($key))
+                    $this->statement->bindValue($key + 1, $value);
+                else
+                    $this->statement->bindValue($key, $value);
+            }
+        }
+
+        if (!$this->statement->execute())
+            throw new PDOException("FDOQuery::execute() statement->execute failed");
     }
 }
