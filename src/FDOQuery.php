@@ -18,10 +18,7 @@ use PDOStatement;
 
 class FDOQuery
 {
-    /** @var PDOStatement */
-    private $statement;
-    /** @var array */
-    private $params;
+    use FDOQueryTrait;
 
     public function __construct(PDOStatement $statement)
     {
@@ -53,14 +50,7 @@ class FDOQuery
 
     public function execute(): void
     {
-        if ($this->params) {
-            foreach ($this->params as $key => $value) {
-                if (is_int($key))
-                    $this->statement->bindValue($key + 1, $value);
-                else
-                    $this->statement->bindValue($key, $value);
-            }
-        }
+        $this->bindParameters();
 
         if (!$this->statement->execute())
             throw new PDOException("FDOQuery::execute() statement->execute failed");
