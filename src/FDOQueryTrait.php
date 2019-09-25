@@ -4,6 +4,7 @@
 namespace GoFinTech\FluentPdo;
 
 
+use DateTimeInterface;
 use PDOStatement;
 
 trait FDOQueryTrait
@@ -20,9 +21,17 @@ trait FDOQueryTrait
 
         foreach ($this->params as $key => $value) {
             if (is_int($key))
-                $this->statement->bindValue($key + 1, $value);
+                $this->bindValue($key + 1, $value);
             else
-                $this->statement->bindValue($key, $value);
+                $this->bindValue($key, $value);
         }
+    }
+
+    private function bindValue($key, $value): void
+    {
+        if ($value instanceof DateTimeInterface)
+            $value = $value->format(DATE_ISO8601);
+
+        $this->statement->bindValue($key, $value);
     }
 }
