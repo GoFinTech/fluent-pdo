@@ -18,10 +18,8 @@ use PDOStatement;
 
 class FDOMappedQuery
 {
-    /** @var PDOStatement */
-    private $statement;
-    /** @var ?array */
-    private $params;
+    use FDOQueryTrait;
+
     /** @var string */
     private $className;
 
@@ -60,14 +58,7 @@ class FDOMappedQuery
                 break;
         }
 
-        if ($this->params) {
-            foreach ($this->params as $key => $value) {
-                if (is_int($key))
-                    $this->statement->bindValue($key + 1, $value);
-                else
-                    $this->statement->bindValue($key, $value);
-            }
-        }
+        $this->bindParameters();
 
         if (!$this->statement->execute())
             throw new PDOException("FDOMappedQuery::executeStatement() statement->execute failed");

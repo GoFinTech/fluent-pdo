@@ -19,10 +19,8 @@ use PDOStatement;
 
 class FDOBoundQuery
 {
-    /** @var PDOStatement */
-    private $statement;
-    /** @var ?array */
-    private $params;
+    use FDOQueryTrait;
+
     /** @var array */
     private $bindMap;
 
@@ -80,14 +78,7 @@ class FDOBoundQuery
             // This is our own problem since API should guard against it
             throw new LogicException("FDOBoundQuery::executeStatement() bindMap is empty");
 
-        if ($this->params) {
-            foreach ($this->params as $key => $value) {
-                if (is_int($key))
-                    $this->statement->bindValue($key + 1, $value);
-                else
-                    $this->statement->bindValue($key, $value);
-            }
-        }
+        $this->bindParameters();
 
         if (!$this->statement->execute())
             throw new PDOException("FDOBoundQuery::executeStatement() statement->execute failed");
