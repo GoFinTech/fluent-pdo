@@ -13,6 +13,7 @@ namespace GoFinTech\FluentPdo;
 
 
 use InvalidArgumentException;
+use PDO;
 use PDOException;
 use PDOStatement;
 
@@ -54,5 +55,11 @@ class FDOQuery
 
         if (!$this->statement->execute())
             throw new PDOException("FDOQuery::execute() statement->execute failed");
+    }
+
+    public function any(&$found): void
+    {
+        $this->bindParameters();
+        $found = ($this->statement->fetch(PDO::FETCH_NUM) !== false);
     }
 }
