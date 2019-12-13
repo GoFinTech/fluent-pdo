@@ -60,6 +60,10 @@ class FDOQuery
     public function any(&$found): void
     {
         $this->bindParameters();
+
+        if (!$this->statement->execute())
+            throw new PDOException("FDOQuery::any() statement->execute failed");
+
         $found = ($this->statement->fetch(PDO::FETCH_NUM) !== false);
     }
 }
