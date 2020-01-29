@@ -54,6 +54,11 @@ class FDO
         return new FDOQuery($statement);
     }
 
+    public function immediate(string $statement, array $params = []): void 
+    {
+        $this->query($statement)->params($params)->execute();
+    }
+    
     /**
      * Helper for building INSERT INTO statements.
      * 
