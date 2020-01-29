@@ -104,7 +104,11 @@ class FDO
     {
         if (preg_match('/^[a-zA-Z][a-zA-Z0-9_]*$/', $name))
             return $name;
-        else
-            return '"' . str_replace('"', '""', $name) . '"';
+        // Support schema reference with a dot
+        $parts = explode('.', $name, 2);
+        foreach ($parts as &$part) {
+            $part = '"' . str_replace('"', '""', $part) . '"'; 
+        }
+        return implode('.', $parts);
     }
 }
