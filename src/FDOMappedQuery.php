@@ -12,6 +12,7 @@
 namespace GoFinTech\FluentPdo;
 
 
+use LogicException;
 use PDO;
 use PDOException;
 use PDOStatement;
@@ -42,6 +43,38 @@ class FDOMappedQuery
         $this->executeStatement();
 
         $traversable = $this->statement;
+    }
+
+    public function single(&$result): void
+    {
+        $this->executeStatement();
+
+        $row = $this->statement->fetch();
+        if ($row === false)
+            throw new LogicException("FDOMappedQuery::single() returned no records");
+
+        $next = $this->statement->fetch();
+        if ($next !== false)
+            throw new LogicException("FDOMappedQuery::single() returned multiple records");
+
+        $result = $row;
+    }
+
+    public function singleOrNull(&$result): void
+    {
+        $this->executeStatement();
+
+        $row = $this->statement->fetch();
+        if ($row === false) {
+            $result = null;
+            return;
+        }
+
+        $next = $this->statement->fetch();
+        if ($next !== false)
+            throw new LogicException("FDOMappedQuery::singleOrNull() returned multiple records");
+
+        $result = $row;
     }
 
     private function executeStatement(): void
