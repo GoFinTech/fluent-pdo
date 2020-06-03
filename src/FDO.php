@@ -58,19 +58,39 @@ class FDO
     {
         $this->query($statement)->params($params)->execute();
     }
-    
+
     /**
      * Helper for building INSERT INTO statements.
-     * 
+     *
+     * Adding RETURNING clause:
+     *  $options = [
+     *      'returning' => ['field1', 'field2']
+     *  ];
+     *
+     * Adding ON CONFLICT clause:
+     *  $options = [
+     *      'onConflict' => [
+     *          'of' => ['field1', 'field2'],
+     *          'update' => ['field3', 'field4'] // update only selected fields
+     *      ]
+     *  ];
+     *  $options = [
+     *      'onConflict' => [
+     *          'of' => ['field1', 'field2'],
+     *          'update' => [] // equivalent to DO NOTHING
+     *      ]
+     *  ];
+     *  $options = [
+     *      'onConflict' => [
+     *          'of' => ['field1', 'field2'],
+     *          'update' => '*' // update all fields that are not in 'of'
+     *      ]
+     *  ];
+     *
      * @param string $table target table name
      * @param array $values field values ['field_name' => $value]
-     * @param array|null $options additional feature control
-     * 
-     * @example
-     *  $fdo->insert('order', ['customer' => 7], [
-     *      'returning' => ['id']
-     *  ]);
-     * 
+     * @param array|null $options Additional feature control
+     *
      * @return FDOQuery
      */
     public function insert(string $table, array $values, ?array $options = null): FDOQuery
@@ -78,6 +98,7 @@ class FDO
         $sql = ['insert into ' . self::quoteIdentifier($table) . ' ('];
         $params = [];
         $bindGroup = [];
+        $placeholder = [];
         $i = 0;
         foreach ($values as $name => $value) {
             if ($i > 0) {
@@ -88,6 +109,7 @@ class FDO
             $paramName = ":p$i";
             $params[$paramName] = $value;
             $bindGroup[] = $paramName;
+            $placeholder[$name] = $paramName;
             $i++;
         }
         $sql[] = ') values (' . implode($bindGroup) . ')';
@@ -100,6 +122,56 @@ class FDO
                 }
                 $sql[] = self::quoteIdentifier($field);
                 $first = false;
+            }
+        }
+        if (isset($options['onConflict'])) {
+            $sql[] = ' on conflict (';
+            $first = true;
+            foreach ($options['onConflict']['of'] as $field) {
+                if (!$first) {
+                    $sql[] = ',';
+                }
+                $sql[] = self::quoteIdentifier($field);
+                $first = false;
+            }
+            $sql[] = ') ';
+            $update = $options['onConflict']['update'];
+            if (is_array($update)) {
+                if ($update) {
+                    $sql[] = ' do update set ';
+                    $first = true;
+                    foreach ($update as $field) {
+                        if (!$first) {
+                            $sql[] = ',';
+                        }
+                        $sql[] = self::quoteIdentifier($field);
+                        $sql[] = '=';
+                        $sql[] = $placeholder[$field];
+                        $first = false;
+                    }
+                }
+                else {
+                    $sql[] = ' do nothing';
+                }
+            }
+            else if ($update == '*') {
+                $ofNames = array_flip($options['onConflict']['of']);
+                $sql[] = ' do update set ';
+                $first = true;
+                foreach ($values as $field => $dummy) {
+                    if (array_key_exists($field, $ofNames))
+                        continue;
+                    if (!$first) {
+                        $sql[] = ',';
+                    }
+                    $sql[] = self::quoteIdentifier($field);
+                    $sql[] = '=';
+                    $sql[] = $placeholder[$field];
+                    $first = false;
+                }
+            }
+            else {
+                throw new InvalidArgumentException("FDO::insert() invalid onConflict=>update option value");
             }
         }
         return $this->query(implode($sql))->params($params);
