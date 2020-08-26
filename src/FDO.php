@@ -59,6 +59,11 @@ class FDO
         $this->query($statement)->params($params)->execute();
     }
 
+    public function beginTransaction(): FDOTransaction
+    {
+        return new FDOTransaction($this->pdo);
+    }
+
     /**
      * Helper for building INSERT INTO statements.
      *
