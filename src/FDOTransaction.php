@@ -31,8 +31,7 @@ class FDOTransaction
 
     public function __destruct()
     {
-        if (isset($this->pdo))
-            $this->pdo->rollBack();
+        $this->close();
     }
 
     public function commit(): void
@@ -56,6 +55,15 @@ class FDOTransaction
         }
         else if ($this->commit) {
             throw new LogicException("FDOTransaction::rollback() called after commit()");
+        }
+    }
+
+    public function close(): void
+    {
+        if (isset($this->pdo)) {
+            $this->pdo->rollBack();
+            $this->pdo = null;
+            $this->commit = false;
         }
     }
 }
