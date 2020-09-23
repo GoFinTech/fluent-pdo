@@ -110,7 +110,7 @@ class FDO
      * @param array $values field values ['field_name' => $value]
      * @param array|null $options Additional feature control
      *
-     * @return FDOInsert|FDOQuery query is returned if 'returning' option is specified
+     * @return FDOInsert For backward compatibility FDOQuery is returned if 'returning' option is specified
      */
     public function insert(string $table, array $values, ?array $options = null)
     {
