@@ -12,6 +12,7 @@
 namespace GoFinTech\FluentPdo;
 
 
+use DateTimeInterface;
 use InvalidArgumentException;
 use PDO;
 use PDOException;
@@ -192,5 +193,29 @@ class FDO
             $part = '"' . str_replace('"', '""', $part) . '"'; 
         }
         return implode('.', $parts);
+    }
+
+    public function quoteValue($value): string
+    {
+        $valueType = gettype($value);
+        switch ($valueType) {
+            case 'NULL':
+                return 'NULL';
+            case 'string':
+                return $this->pdo->quote($value);
+            case 'integer':
+            case 'double':
+                return (string)$value;
+            case 'boolean':
+                return $value ? 'TRUE' : 'FALSE';
+            case 'object':
+                if ($value instanceof DateTimeInterface)
+                    return $this->pdo->quote($value->format(DATE_ATOM));
+                else
+                    return $this->pdo->quote("$value");
+            default:
+                throw new InvalidArgumentException("FDO::quoteValue() unsupported value type $valueType");
+        }
+
     }
 }
