@@ -9,8 +9,6 @@
  * file that was distributed with this source code.
  */
 
-/* @noinspection SqlNoDataSourceInspection */
-
 namespace GoFinTech\FluentPdo;
 
 
@@ -68,7 +66,20 @@ class FDO
     }
 
     /**
-     * Helper for building INSERT INTO statements.
+     * Helper for building INSERT statements.
+     *
+     * Single record example:
+     * $fdo->insert('comment', ['text' => 'hello'])->execute();
+     *
+     * Multiple records example:
+     * $fdo->insert('comment', ['text'])
+     *  ->append(['text'=>'hello'])
+     *  ->append(['text'=>'world'])
+     *  ->execute();
+     *
+     * The following $options are still supported
+     * but please consider using the constructs above
+     * and extend them as {@see FDOInsert} permits.
      *
      * Adding RETURNING clause:
      *  $options = [
@@ -99,82 +110,32 @@ class FDO
      * @param array $values field values ['field_name' => $value]
      * @param array|null $options Additional feature control
      *
-     * @return FDOQuery
+     * @return FDOInsert|FDOQuery query is returned if 'returning' option is specified
      */
-    public function insert(string $table, array $values, ?array $options = null): FDOQuery
+    public function insert(string $table, array $values, ?array $options = null)
     {
-        $sql = ['insert into ' . self::quoteIdentifier($table) . ' ('];
-        $first = true;
-        foreach ($values as $name => $value) {
-            if (!$first) $sql[] = ',';
-            $sql[] = self::quoteIdentifier($name);
-            $first = false;
+        if (!$values)
+            throw new InvalidArgumentException("FDO::insert() values array cannot be empty");
+
+        reset($values);
+        if (is_int(key($values))) {
+            $insert = new FDOInsert($this, $table, $values);
         }
-        $sql[] = ') values (';
-        $first = true;
-        foreach ($values as $name => $value) {
-            if (!$first) $sql[] = ',';
-            $sql[] = $this->quoteValue($value);
-            $first = false;
+        else {
+            $insert = new FDOInsert($this, $table, array_keys($values));
+            $insert->append($values);
         }
-        $sql[] = ')';
+
+        if (isset($options['onConflict'])) {
+            $insert->onConflict($options['onConflict']['of'],  $options['onConflict']['update']);
+        }
 
         if (isset($options['returning'])) {
-            $sql[] = ' returning ';
-            $first = true;
-            foreach ($options['returning'] as $field) {
-                if (!$first) $sql[] = ',';
-                $sql[] = self::quoteIdentifier($field);
-                $first = false;
-            }
+            return $insert->returning($options['returning']);
         }
-        if (isset($options['onConflict'])) {
-            $sql[] = ' on conflict (';
-            $first = true;
-            foreach ($options['onConflict']['of'] as $field) {
-                if (!$first) $sql[] = ',';
-                $sql[] = self::quoteIdentifier($field);
-                $first = false;
-            }
-            $sql[] = ') ';
-            $update = $options['onConflict']['update'];
-            if (is_array($update)) {
-                if ($update) {
-                    $sql[] = ' do update set ';
-                    $first = true;
-                    foreach ($update as $field) {
-                        if (!$first) $sql[] = ',';
-                        $quoted = self::quoteIdentifier($field);
-                        $sql[] = $quoted;
-                        $sql[] = '=';
-                        $sql[] = "excluded.$quoted";
-                        $first = false;
-                    }
-                }
-                else {
-                    $sql[] = ' do nothing';
-                }
-            }
-            else if ($update == '*') {
-                $ofNames = array_flip($options['onConflict']['of']);
-                $sql[] = ' do update set ';
-                $first = true;
-                foreach ($values as $field => $dummy) {
-                    if (array_key_exists($field, $ofNames))
-                        continue;
-                    if (!$first) $sql[] = ',';
-                    $quoted = self::quoteIdentifier($field);
-                    $sql[] = $quoted;
-                    $sql[] = '=';
-                    $sql[] = "excluded.$quoted";
-                    $first = false;
-                }
-            }
-            else {
-                throw new InvalidArgumentException("FDO::insert() invalid onConflict=>update option value");
-            }
+        else {
+            return $insert;
         }
-        return $this->query(implode($sql));
     }
     
     public static function quoteIdentifier(string $name): string 
