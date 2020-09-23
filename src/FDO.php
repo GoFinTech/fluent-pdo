@@ -3,11 +3,13 @@
 /*
  * This file is part of the Fluent PDO package.
  *
- * (c) 2019 Go Financial Technologies, JSC
+ * (c) 2019,2020 Go Financial Technologies, JSC
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
  */
+
+/* @noinspection SqlNoDataSourceInspection */
 
 namespace GoFinTech\FluentPdo;
 
@@ -102,30 +104,26 @@ class FDO
     public function insert(string $table, array $values, ?array $options = null): FDOQuery
     {
         $sql = ['insert into ' . self::quoteIdentifier($table) . ' ('];
-        $params = [];
-        $bindGroup = [];
-        $placeholder = [];
-        $i = 0;
+        $first = true;
         foreach ($values as $name => $value) {
-            if ($i > 0) {
-                $sql[] = ',';
-                $bindGroup[] = ',';
-            }
+            if (!$first) $sql[] = ',';
             $sql[] = self::quoteIdentifier($name);
-            $paramName = ":p$i";
-            $params[$paramName] = $value;
-            $bindGroup[] = $paramName;
-            $placeholder[$name] = $paramName;
-            $i++;
+            $first = false;
         }
-        $sql[] = ') values (' . implode($bindGroup) . ')';
+        $sql[] = ') values (';
+        $first = true;
+        foreach ($values as $name => $value) {
+            if (!$first) $sql[] = ',';
+            $sql[] = $this->quoteValue($value);
+            $first = false;
+        }
+        $sql[] = ')';
+
         if (isset($options['returning'])) {
             $sql[] = ' returning ';
             $first = true;
             foreach ($options['returning'] as $field) {
-                if (!$first) {
-                    $sql[] = ',';
-                }
+                if (!$first) $sql[] = ',';
                 $sql[] = self::quoteIdentifier($field);
                 $first = false;
             }
@@ -134,9 +132,7 @@ class FDO
             $sql[] = ' on conflict (';
             $first = true;
             foreach ($options['onConflict']['of'] as $field) {
-                if (!$first) {
-                    $sql[] = ',';
-                }
+                if (!$first) $sql[] = ',';
                 $sql[] = self::quoteIdentifier($field);
                 $first = false;
             }
@@ -147,12 +143,11 @@ class FDO
                     $sql[] = ' do update set ';
                     $first = true;
                     foreach ($update as $field) {
-                        if (!$first) {
-                            $sql[] = ',';
-                        }
-                        $sql[] = self::quoteIdentifier($field);
+                        if (!$first) $sql[] = ',';
+                        $quoted = self::quoteIdentifier($field);
+                        $sql[] = $quoted;
                         $sql[] = '=';
-                        $sql[] = $placeholder[$field];
+                        $sql[] = "excluded.$quoted";
                         $first = false;
                     }
                 }
@@ -167,12 +162,11 @@ class FDO
                 foreach ($values as $field => $dummy) {
                     if (array_key_exists($field, $ofNames))
                         continue;
-                    if (!$first) {
-                        $sql[] = ',';
-                    }
-                    $sql[] = self::quoteIdentifier($field);
+                    if (!$first) $sql[] = ',';
+                    $quoted = self::quoteIdentifier($field);
+                    $sql[] = $quoted;
                     $sql[] = '=';
-                    $sql[] = $placeholder[$field];
+                    $sql[] = "excluded.$quoted";
                     $first = false;
                 }
             }
@@ -180,7 +174,7 @@ class FDO
                 throw new InvalidArgumentException("FDO::insert() invalid onConflict=>update option value");
             }
         }
-        return $this->query(implode($sql))->params($params);
+        return $this->query(implode($sql));
     }
     
     public static function quoteIdentifier(string $name): string 
