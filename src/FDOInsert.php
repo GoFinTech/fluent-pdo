@@ -70,7 +70,7 @@ class FDOInsert
         }
         $sql[] = ')';
 
-        $this->values[] = $sql;
+        $this->values[] = implode($sql);
 
         return $this;
     }
