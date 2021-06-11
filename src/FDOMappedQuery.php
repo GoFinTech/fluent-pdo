@@ -83,6 +83,9 @@ class FDOMappedQuery
             case 'array':
                 $this->statement->setFetchMode(PDO::FETCH_ASSOC);
                 break;
+            case 'indexed':
+                $this->statement->setFetchMode(PDO::FETCH_NUM);
+                break;
             case 'object':
                 $this->statement->setFetchMode(PDO::FETCH_OBJ);
                 break;
