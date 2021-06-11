@@ -66,4 +66,15 @@ class FDOQuery
 
         $found = ($this->statement->fetch(PDO::FETCH_NUM) !== false);
     }
+
+    public function fetchSingleColumn(&$array, $column = 0): void
+    {
+        if (is_string($column))
+            $mapMode = 'array';
+        else
+            $mapMode = 'indexed';
+        // We trade memory for speed (NOT TESTED: native fetchAll SHOULD be faster than looping through every record)
+        $this->map($mapMode)->fetchAll($buffer);
+        $array = array_column($buffer, $column);
+    }
 }
